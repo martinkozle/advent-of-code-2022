@@ -1,7 +1,11 @@
 mod days;
 use clap::Parser;
 use days::*;
-use std::{fs, time::Instant};
+use std::{
+    fs,
+    io::{self, Read},
+    time::Instant,
+};
 
 /// Advent of Code 2022
 #[derive(Parser, Debug)]
@@ -10,14 +14,17 @@ struct Args {
     /// Challenge day
     day: u32,
     /// Day part
-    #[arg(value_parser = clap::value_parser!(u32).range(1..=2),default_value_t = 1)]
+    #[arg(value_parser = clap::value_parser!(u32).range(1..=2), default_value_t = 1)]
     part: u32,
+    /// Flag to take input from standard input instead of file,
+    /// useful for the small examples or piping in custom input
+    #[arg(short, long, action)]
+    std_input: bool,
 }
 
 fn main() {
     env_logger::init();
     let args = Args::parse();
-    let file_to_read = format!("inputs/day_{:02}.txt", args.day);
     let solve_function = match (args.day, args.part) {
         (1, 1) => day_01::part1::solve,
         (1, 2) => day_01::part2::solve,
@@ -29,19 +36,39 @@ fn main() {
         (4, 2) => day_04::part2::solve,
         (5, 1) => day_05::part1::solve,
         (5, 2) => day_05::part2::solve,
+        (6, 1) => day_06::part1::solve,
+        (6, 2) => day_06::part2::solve,
         _ => {
             log::error!("Unsolved day or part");
             return;
         }
     };
-    match fs::read_to_string(&file_to_read) {
-        Ok(input) => {
-            let start = Instant::now();
-            let answer = solve_function(input);
-            let duration = start.elapsed();
-            println!("{}", answer);
-            log::info!("Solution took {:?}", duration)
+    let file_to_read = format!("inputs/day_{:02}.txt", args.day);
+    let input = if args.std_input {
+        let mut buffer = String::new();
+        match io::stdin().read_to_string(&mut buffer) {
+            Ok(_) => buffer,
+            Err(error) => {
+                log::error!("Error occured while reading from standard input: {}", error);
+                return;
+            }
         }
-        Err(_) => log::error!("Could not read file '{}'", file_to_read),
-    }
+    } else {
+        match fs::read_to_string(&file_to_read) {
+            Ok(input) => input,
+            Err(error) => {
+                log::error!(
+                    "Error occured while reading file '{}': {}",
+                    file_to_read,
+                    error
+                );
+                return;
+            }
+        }
+    };
+    let start = Instant::now();
+    let answer = solve_function(input);
+    let duration = start.elapsed();
+    println!("{}", answer);
+    log::info!("Solution took {:?}", duration)
 }
