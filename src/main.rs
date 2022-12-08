@@ -38,6 +38,8 @@ fn main() {
         (5, 2) => day_05::part2::solve,
         (6, 1) => day_06::part1::solve,
         (6, 2) => day_06::part2::solve,
+        (7, 1) => day_07::part1::solve,
+        (7, 2) => day_07::part2::solve,
         _ => {
             log::error!("Unsolved day or part");
             return;
