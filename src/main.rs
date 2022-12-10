@@ -42,6 +42,8 @@ fn main() {
         (7, 2) => day_07::part2::solve,
         (8, 1) => day_08::part1::solve,
         (8, 2) => day_08::part2::solve,
+        (9, 1) => day_09::part1::solve,
+        (9, 2) => day_09::part2::solve,
         (10, 1) => day_10::part1::solve,
         (10, 2) => day_10::part2::solve,
         // Add new days above this line
