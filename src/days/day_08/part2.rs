@@ -1,7 +1,7 @@
 pub fn solve(input: String) -> String {
-    let grid: Vec<Vec<u16>> = input
+    let grid: Vec<Vec<u32>> = input
         .lines()
-        .map(|line| line.chars().map(|c| c as u16 - '0' as u16).collect())
+        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
         .collect();
     let mut best = 0;
     for y in 0..grid.len() {
