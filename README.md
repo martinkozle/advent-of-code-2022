@@ -23,6 +23,8 @@ Options:
   -V, --version    Print version information
 ```
 
+If you want info logging set environment variable `RUST_LOG=info`.
+
 ## Build
 
 ```console
