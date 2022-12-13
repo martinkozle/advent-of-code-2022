@@ -48,6 +48,8 @@ fn main() {
         (10, 2) => day_10::part2::solve,
         (11, 1) => day_11::part1::solve,
         (11, 2) => day_11::part2::solve,
+        (12, 1) => day_12::part1::solve,
+        (12, 2) => day_12::part2::solve,
         // Add new days above this line
         _ => {
             log::error!("Unsolved day or part");
