@@ -1,6 +1,7 @@
 # Advent of Code 2022
 
-My solutions for the [Advent of Code 2022](https://adventofcode.com/2022) challenges written in Rust.
+My solutions for the [Advent of Code 2022](https://adventofcode.com/2022) challenges written in Rust.  
+My goal is to try and write the solutions using idiomatic code. Also I try to make the solutions not panic on any invalid input.
 
 ## Project structure
 
@@ -22,8 +23,6 @@ Options:
   -h, --help       Print help information
   -V, --version    Print version information
 ```
-
-If you want info logging set environment variable `RUST_LOG=info`.
 
 ## Build
 
