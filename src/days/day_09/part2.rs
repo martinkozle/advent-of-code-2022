@@ -1,4 +1,4 @@
-use std::{collections::HashSet, cmp::Ordering};
+use std::{cmp::Ordering, collections::HashSet};
 
 use anyhow::bail;
 

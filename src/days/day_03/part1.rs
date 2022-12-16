@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 
 fn priority(item: char) -> anyhow::Result<u32> {
     match item {
