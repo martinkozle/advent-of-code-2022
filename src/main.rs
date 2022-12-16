@@ -52,6 +52,8 @@ fn main() -> anyhow::Result<()> {
         (12, 2) => day_12::part2::solve,
         (13, 1) => day_13::part1::solve,
         (13, 2) => day_13::part2::solve,
+        (14, 1) => day_14::part1::solve,
+        (14, 2) => day_14::part2::solve,
         // Add new days above this line
         _ => {
             bail!("unsolved day or part");
