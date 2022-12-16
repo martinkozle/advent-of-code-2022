@@ -90,7 +90,7 @@ impl FileSystem {
     fn mkdir(&mut self, dir: &str) {
         assert!(
             !dir.starts_with('/'),
-            "Making absolute directories isn't supported"
+            "making absolute directories isn't supported"
         );
         let new_path = format!("{}{}/", self.current_working_directory, dir);
         if self.file_table.contains_key(&new_path) {
@@ -129,7 +129,7 @@ impl FileSystem {
                 .collect::<anyhow::Result<Vec<_>>>()?
                 .into_iter()
                 .sum()),
-            None => Err(anyhow!("Invalid path: `{}`", path)),
+            None => Err(anyhow!("invalid path: `{}`", path)),
         }
     }
 

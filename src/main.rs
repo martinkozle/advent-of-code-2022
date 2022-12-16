@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
         (13, 2) => day_13::part2::solve,
         // Add new days above this line
         _ => {
-            bail!("Unsolved day or part");
+            bail!("unsolved day or part");
         }
     };
     let file_to_read = format!("inputs/day_{:02}.txt", args.day);
@@ -66,7 +66,7 @@ fn main() -> anyhow::Result<()> {
         Ok(buffer)
     } else {
         fs::read_to_string(&file_to_read).context(format!(
-            "Error occured while reading file `{}`",
+            "error occured while reading file `{}`",
             file_to_read
         ))
     }?;
