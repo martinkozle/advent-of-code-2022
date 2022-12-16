@@ -41,7 +41,7 @@ impl Monkey {
         ensure!(
             regex
                 .capture_names()
-                .filter_map(|name| name)
+                .flatten()
                 .all(|name| EXPECTED_NAMES.contains(&name)),
             "regex didn't contain all expected names"
         );
