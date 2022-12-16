@@ -1,8 +1,22 @@
-pub fn solve(input: String) -> String {
+use anyhow::{anyhow, ensure};
+use itertools::Itertools;
+
+pub fn solve(input: String) -> anyhow::Result<String> {
     let grid: Vec<Vec<u32>> = input
         .lines()
-        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
-        .collect();
+        .map(|line| {
+            line.chars()
+                .map(|c| {
+                    c.to_digit(10)
+                        .ok_or_else(|| anyhow!("non digit character in input"))
+                })
+                .collect::<anyhow::Result<Vec<_>>>()
+        })
+        .collect::<anyhow::Result<_>>()?;
+    ensure!(
+        grid.iter().map(|row| row.len()).all_equal(),
+        "all rows need to have the same number of digits"
+    );
     let mut best = 0;
     for y in 0..grid.len() {
         for x in 0..grid[y].len() {
@@ -50,5 +64,5 @@ pub fn solve(input: String) -> String {
             best = best.max(right * left * down * up);
         }
     }
-    best.to_string()
+    Ok(best.to_string())
 }

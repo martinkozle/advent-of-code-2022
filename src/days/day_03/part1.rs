@@ -1,15 +1,17 @@
 use std::collections::HashSet;
 
-fn priority(item: char) -> u32 {
+use anyhow::{Context, anyhow};
+
+fn priority(item: char) -> anyhow::Result<u32> {
     match item {
-        lowercase if lowercase.is_lowercase() => 1 + lowercase as u32 - 'a' as u32,
-        uppercase if uppercase.is_uppercase() => 27 + uppercase as u32 - 'A' as u32,
-        _ => panic!("Invalid item"),
+        lowercase if lowercase.is_ascii_lowercase() => Ok(1 + lowercase as u32 - 'a' as u32),
+        uppercase if uppercase.is_ascii_uppercase() => Ok(27 + uppercase as u32 - 'A' as u32),
+        _ => Err(anyhow!("invalid item")),
     }
 }
 
-pub fn solve(input: String) -> String {
-    input
+pub fn solve(input: String) -> anyhow::Result<String> {
+    Ok(input
         .lines()
         .map(|line| line.split_at(line.chars().count() / 2))
         .map(|(first, second)| {
@@ -18,8 +20,17 @@ pub fn solve(input: String) -> String {
                 second.chars().collect::<HashSet<_>>(),
             )
         })
-        .map(|(first, second)| first.intersection(&second).next().unwrap().to_owned())
-        .map(priority)
+        .map(|(first, second)| {
+            priority(
+                first
+                    .intersection(&second)
+                    .next()
+                    .context("invalid input, no common character")?
+                    .to_owned(),
+            )
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?
+        .into_iter()
         .sum::<u32>()
-        .to_string()
+        .to_string())
 }

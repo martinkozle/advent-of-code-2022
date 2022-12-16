@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, bail, Context};
 use itertools::Itertools;
 
 struct File {
@@ -11,8 +12,8 @@ struct Directory {
 }
 
 impl Directory {
-    fn new() -> Directory {
-        Directory {
+    fn new() -> Self {
+        Self {
             children_paths: vec![],
         }
     }
@@ -29,8 +30,8 @@ struct FileSystem {
 }
 
 impl FileSystem {
-    fn new() -> FileSystem {
-        let mut file_system = FileSystem {
+    fn new() -> Self {
+        let mut file_system = Self {
             file_table: HashMap::new(),
             current_working_directory: "/".to_string(),
         };
@@ -59,15 +60,30 @@ impl FileSystem {
         }
     }
 
-    fn ls(&self, dir: &str) -> Option<&Vec<String>> {
+    fn ls(&self, dir: &str) -> anyhow::Result<&Vec<String>> {
         let abs_dir = if dir.starts_with('/') {
             dir.to_string()
         } else {
             format!("{}{}/", self.current_working_directory, dir)
         };
-        match self.file_table.get(&abs_dir)? {
-            FileType::D(directory) => Some(&directory.children_paths),
-            _ => None,
+        match self
+            .file_table
+            .get(&abs_dir)
+            .ok_or_else(|| anyhow!("invalid dir path: {}", dir))?
+        {
+            FileType::D(directory) => Ok(&directory.children_paths),
+            FileType::F(_) => Err(anyhow!("tried to ls into a file: `{}`", abs_dir)),
+        }
+    }
+
+    fn get_current_working_directory_mut(&mut self) -> &mut Directory {
+        match self
+            .file_table
+            .get_mut(&self.current_working_directory)
+            .expect("valid filesystem table and current working directory")
+        {
+            FileType::D(ref mut directory) => directory,
+            FileType::F(_) => panic!("current working directory was a file"),
         }
     }
 
@@ -82,14 +98,9 @@ impl FileSystem {
         }
         self.file_table
             .insert(new_path.clone(), FileType::D(Directory::new()));
-        match self
-            .file_table
-            .get_mut(&self.current_working_directory)
-            .unwrap()
-        {
-            FileType::D(ref mut directory) => directory.children_paths.push(new_path),
-            _ => unreachable!(),
-        };
+        self.get_current_working_directory_mut()
+            .children_paths
+            .push(new_path);
     }
 
     fn cd_mkdir(&mut self, dir: &str) {
@@ -103,79 +114,83 @@ impl FileSystem {
         let new_path = format!("{}{}", self.current_working_directory, file);
         self.file_table
             .insert(new_path.clone(), FileType::F(File { size }));
-        match self
-            .file_table
-            .get_mut(&self.current_working_directory)
-            .unwrap()
-        {
-            FileType::D(ref mut directory) => directory.children_paths.push(new_path),
-            _ => unreachable!(),
-        };
+        self.get_current_working_directory_mut()
+            .children_paths
+            .push(new_path);
     }
 
-    fn size(&self, path: &str) -> u32 {
+    fn size(&self, path: &str) -> anyhow::Result<u32> {
         match self.file_table.get(path) {
-            Some(FileType::F(file)) => file.size,
-            Some(FileType::D(directory)) => directory
+            Some(FileType::F(file)) => Ok(file.size),
+            Some(FileType::D(directory)) => Ok(directory
                 .children_paths
                 .iter()
                 .map(|path| self.size(path))
-                .sum(),
-            None => panic!("Invalid path: {}", path),
+                .collect::<anyhow::Result<Vec<_>>>()?
+                .into_iter()
+                .sum()),
+            None => Err(anyhow!("Invalid path: `{}`", path)),
         }
     }
 
-    fn get_total_size_filtered<P>(&self, predicate: P) -> u32
+    fn get_total_size_filtered<P>(&self, predicate: P) -> anyhow::Result<u32>
     where
         P: Fn(u32) -> bool,
     {
         let mut stack = vec!["/"];
         let mut total: u32 = 0;
 
-        while !stack.is_empty() {
-            let dir = stack.pop().unwrap();
-            let size = self.size(dir);
+        while let Some(dir) = stack.pop() {
+            let size = self.size(dir)?;
             if predicate(size) {
                 total += size;
             }
-            for path in self.ls(dir).expect("dir should be a valid dir path").iter() {
-                if let FileType::D(_) = self.file_table.get(path).unwrap() {
+            for path in self.ls(dir)? {
+                if let Some(FileType::D(_)) = self.file_table.get(path) {
                     stack.push(path)
                 }
             }
         }
-        total
+        Ok(total)
     }
 }
 
-pub fn solve(input: String) -> String {
+pub fn solve(input: String) -> anyhow::Result<String> {
     let mut file_system = FileSystem::new();
     for block in input.split("$ ").skip(1) {
         let mut lines = block.lines();
-        let command = lines.next().unwrap().trim();
+        let command = lines
+            .next()
+            .context("block should contain at least one line")?
+            .trim();
         let output = lines.collect::<Vec<_>>();
-        match command.split(' ').collect::<Vec<_>>()[..] {
+        match command.split(' ').collect_vec()[..] {
             ["cd", dir] => {
                 file_system.cd_mkdir(dir);
             }
             ["ls"] => {
-                for (a, b) in output.iter().map(|line| {
-                    line.split_once(' ')
-                        .expect("Each line of ls output should have 2 words")
-                }) {
+                for (a, b) in output
+                    .iter()
+                    .map(|line| {
+                        line.split_once(' ').ok_or_else(|| {
+                            anyhow!("invalid ls line, should have 2 words: `{}`", line)
+                        })
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?
+                {
                     match a {
                         "dir" => file_system.mkdir(b),
                         size if size.parse::<u32>().is_ok() => {
                             file_system.touch(b, size.parse().unwrap())
                         }
-                        _ => panic!("Invalid ls output: {} {}", a, b),
+                        _ => bail!("invalid ls output: `{}` `{}`", a, b),
                     };
                 }
             }
-            _ => panic!("Invalid command: {}", command),
+            _ => bail!("invalid command: `{}`", command),
         };
     }
-    file_system
-        .get_total_size_filtered(|size| size <= 100000)
-        .to_string()
+    Ok(file_system
+        .get_total_size_filtered(|size| size <= 100000)?
+        .to_string())
 }

@@ -1,4 +1,5 @@
 mod days;
+use anyhow::{bail, Context};
 use clap::Parser;
 use days::*;
 use std::{
@@ -22,10 +23,9 @@ struct Args {
     std_input: bool,
 }
 
-fn main() {
-    env_logger::init();
+fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let solve_function = match (args.day, args.part) {
+    let solve_function: fn(String) -> anyhow::Result<String> = match (args.day, args.part) {
         (1, 1) => day_01::part1::solve,
         (1, 2) => day_01::part2::solve,
         (2, 1) => day_02::part1::solve,
@@ -50,38 +50,30 @@ fn main() {
         (11, 2) => day_11::part2::solve,
         (12, 1) => day_12::part1::solve,
         (12, 2) => day_12::part2::solve,
+        (13, 1) => day_13::part1::solve,
+        (13, 2) => day_13::part2::solve,
         // Add new days above this line
         _ => {
-            log::error!("Unsolved day or part");
-            return;
+            bail!("Unsolved day or part");
         }
     };
     let file_to_read = format!("inputs/day_{:02}.txt", args.day);
     let input = if args.std_input {
         let mut buffer = String::new();
-        match io::stdin().read_to_string(&mut buffer) {
-            Ok(_) => buffer,
-            Err(error) => {
-                log::error!("Error occured while reading from standard input: {}", error);
-                return;
-            }
-        }
+        io::stdin()
+            .read_to_string(&mut buffer)
+            .context("error occured while reading from standard input")?;
+        Ok(buffer)
     } else {
-        match fs::read_to_string(&file_to_read) {
-            Ok(input) => input,
-            Err(error) => {
-                log::error!(
-                    "Error occured while reading file '{}': {}",
-                    file_to_read,
-                    error
-                );
-                return;
-            }
-        }
-    };
+        fs::read_to_string(&file_to_read).context(format!(
+            "Error occured while reading file `{}`",
+            file_to_read
+        ))
+    }?;
     let start = Instant::now();
-    let answer = solve_function(input);
+    let answer = solve_function(input)?;
     let duration = start.elapsed();
     println!("{}", answer);
-    log::info!("Solution took {:?}", duration)
+    println!("Solution took {:?}", duration);
+    Ok(())
 }

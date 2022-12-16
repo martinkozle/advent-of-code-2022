@@ -1,3 +1,5 @@
+use anyhow::{anyhow, ensure};
+use itertools::Itertools;
 use petgraph::{algo::dijkstra, prelude::DiGraphMap};
 
 fn convert_start_and_end(chr: char) -> char {
@@ -8,7 +10,25 @@ fn convert_start_and_end(chr: char) -> char {
     }
 }
 
-pub fn solve(input: String) -> String {
+pub fn solve(input: String) -> anyhow::Result<String> {
+    ensure!(
+        input.lines().map(|line| line.chars().count()).all_equal(),
+        "all rows in input don't have same char count"
+    );
+    ensure!(
+        input
+            .chars()
+            .all(|c| matches!(c, 'a'..='z' | 'S' | 'E' | '\n')),
+        "invalid input domain"
+    );
+    ensure!(
+        input.chars().filter(|c| *c == 'S').count() == 1,
+        "S isn't contained in input exactly once"
+    );
+    ensure!(
+        input.chars().filter(|c| *c == 'S').count() == 1,
+        "E isn't contained in input exactly once"
+    );
     let input_matrix: Vec<Vec<_>> = input.lines().map(|line| line.chars().collect()).collect();
     let mut graph = DiGraphMap::<(usize, usize), (char, char)>::new();
     let mut end: (usize, usize) = (0, 0);
@@ -32,7 +52,7 @@ pub fn solve(input: String) -> String {
             }
         }
     }
-    dijkstra(&graph, end, None, |_| 1)
+    Ok(dijkstra(&graph, end, None, |_| 1)
         .iter()
         .filter_map(|((y, x), weight)| {
             if convert_start_and_end(input_matrix[*y][*x]) == 'a' {
@@ -42,6 +62,6 @@ pub fn solve(input: String) -> String {
             }
         })
         .min()
-        .unwrap()
-        .to_string()
+        .ok_or_else(|| anyhow!("no path exists from end to an 'a'"))?
+        .to_string())
 }

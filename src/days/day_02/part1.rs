@@ -1,38 +1,68 @@
-fn shape_score(you: char) -> u32 {
-    match you {
-        'A' => 1,
-        'B' => 2,
-        'C' => 3,
-        _ => panic!("Invalid you move"),
+use anyhow::anyhow;
+use itertools::Itertools;
+
+#[derive(PartialEq)]
+enum Move {
+    Rock,
+    Paper,
+    Scissors,
+}
+
+impl Move {
+    fn from_enemy(enemy: &char) -> anyhow::Result<Self> {
+        match enemy {
+            'A' => Ok(Self::Rock),
+            'B' => Ok(Self::Paper),
+            'C' => Ok(Self::Scissors),
+            _ => Err(anyhow!("invalid enemy move")),
+        }
+    }
+
+    fn from_you(you: &char) -> anyhow::Result<Self> {
+        match you {
+            'X' => Ok(Self::Rock),
+            'Y' => Ok(Self::Paper),
+            'Z' => Ok(Self::Scissors),
+            _ => Err(anyhow!("invalid you move")),
+        }
+    }
+
+    fn shape_score(&self) -> u32 {
+        match self {
+            Self::Rock => 1,
+            Self::Paper => 2,
+            Self::Scissors => 3,
+        }
     }
 }
 
-fn score(enemy: char, you: char) -> u32 {
-    assert!(matches!(enemy, 'A' | 'B' | 'C'), "Invalid enemy move");
-    assert!(matches!(you, 'X' | 'Y' | 'Z'), "Invalid you move");
-    let converted_you = match you {
-        'X' => 'A',
-        'Y' => 'B',
-        'Z' => 'C',
-        _ => panic!("Invalid you move"),
+fn score(enemy: Move, you: Move) -> u32 {
+    let outcome_score = match (&enemy, &you) {
+        (m, n) if m == n => 3,
+        (Move::Rock, Move::Rock)
+        | (Move::Paper, Move::Paper)
+        | (Move::Scissors, Move::Scissors) => 3,
+        (Move::Rock, Move::Paper)
+        | (Move::Paper, Move::Scissors)
+        | (Move::Scissors, Move::Rock) => 6,
+        (Move::Rock, Move::Scissors)
+        | (Move::Paper, Move::Rock)
+        | (Move::Scissors, Move::Paper) => 0,
     };
-    let outcome_score = match (enemy, converted_you) {
-        (enemy, you) if enemy == you => 3,
-        ('A', 'B') => 6,
-        ('A', 'C') => 0,
-        ('B', 'A') => 0,
-        ('B', 'C') => 6,
-        ('C', 'A') => 6,
-        ('C', 'B') => 0,
-        _ => panic!("Invalid input moves"),
-    };
-    outcome_score + shape_score(converted_you)
+    outcome_score + you.shape_score()
 }
 
-pub fn solve(input: String) -> String {
-    input
+pub fn solve(input: String) -> anyhow::Result<String> {
+    Ok(input
         .lines()
-        .map(|line| score(line.chars().next().unwrap(), line.chars().last().unwrap()))
+        .map(|line| match line.chars().collect_tuple() {
+            Some((char1, _, char2)) => {
+                Ok(score(Move::from_enemy(&char1)?, Move::from_you(&char2)?))
+            }
+            _ => Err(anyhow!("line didn't contain 2 chars")),
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?
+        .into_iter()
         .sum::<u32>()
-        .to_string()
+        .to_string())
 }

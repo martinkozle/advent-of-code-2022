@@ -1,38 +1,76 @@
-fn shape_score(you: char) -> u32 {
-    match you {
-        'A' => 1,
-        'B' => 2,
-        'C' => 3,
-        _ => panic!("Invalid you move"),
+use anyhow::anyhow;
+use itertools::Itertools;
+
+#[derive(PartialEq, Clone)]
+enum Move {
+    Rock,
+    Paper,
+    Scissors,
+}
+
+impl Move {
+    fn from_enemy(enemy: &char) -> anyhow::Result<Self> {
+        match enemy {
+            'A' => Ok(Self::Rock),
+            'B' => Ok(Self::Paper),
+            'C' => Ok(Self::Scissors),
+            _ => Err(anyhow!("invalid enemy move")),
+        }
+    }
+
+    fn shape_score(&self) -> u32 {
+        match self {
+            Self::Rock => 1,
+            Self::Paper => 2,
+            Self::Scissors => 3,
+        }
     }
 }
 
-fn score(enemy: char, outcome: char) -> u32 {
-    assert!(matches!(enemy, 'A' | 'B' | 'C'), "Invalid enemy move");
-    assert!(matches!(outcome, 'X' | 'Y' | 'Z'), "Invalid outcome");
-    let outcome_score = match outcome {
-        'X' => 0,
-        'Y' => 3,
-        'Z' => 6,
-        _ => panic!("Invalid outcome"),
-    };
-    let you = match (enemy, outcome) {
-        (enemy, 'Y') => enemy,
-        ('A', 'X') => 'C',
-        ('A', 'Z') => 'B',
-        ('B', 'X') => 'A',
-        ('B', 'Z') => 'C',
-        ('C', 'X') => 'B',
-        ('C', 'Z') => 'A',
-        _ => panic!("Invalid input move or outcome"),
-    };
-    outcome_score + shape_score(you)
+enum Outcome {
+    Loss,
+    Tie,
+    Win,
 }
 
-pub fn solve(input: String) -> String {
-    input
+impl Outcome {
+    fn from_outcome(outcome: &char) -> anyhow::Result<Self> {
+        match outcome {
+            'X' => Ok(Self::Loss),
+            'Y' => Ok(Self::Tie),
+            'Z' => Ok(Self::Win),
+            _ => Err(anyhow!("invalid outcome")),
+        }
+    }
+}
+
+fn score(enemy: Move, outcome: Outcome) -> u32 {
+    let outcome_score = match &outcome {
+        Outcome::Loss => 0,
+        Outcome::Tie => 3,
+        Outcome::Win => 6,
+    };
+    let you = match (&enemy, &outcome) {
+        (enemy, Outcome::Tie) => enemy.clone(),
+        (Move::Rock, Outcome::Loss) | (Move::Paper, Outcome::Win) => Move::Scissors,
+        (Move::Rock, Outcome::Win) | (Move::Scissors, Outcome::Loss) => Move::Paper,
+        (Move::Paper, Outcome::Loss) | (Move::Scissors, Outcome::Win) => Move::Rock,
+    };
+    outcome_score + you.shape_score()
+}
+
+pub fn solve(input: String) -> anyhow::Result<String> {
+    Ok(input
         .lines()
-        .map(|line| score(line.chars().next().unwrap(), line.chars().last().unwrap()))
+        .map(|line| match line.chars().collect_tuple() {
+            Some((char1, _, char2)) => Ok(score(
+                Move::from_enemy(&char1)?,
+                Outcome::from_outcome(&char2)?,
+            )),
+            _ => Err(anyhow!("line didn't contain 2 chars")),
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?
+        .into_iter()
         .sum::<u32>()
-        .to_string()
+        .to_string())
 }

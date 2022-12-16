@@ -1,4 +1,6 @@
-pub fn solve(input: String) -> String {
+use anyhow::bail;
+
+pub fn solve(input: String) -> anyhow::Result<String> {
     let mut cycle = 0;
     let mut x = 1;
     let mut sum = 0;
@@ -17,9 +19,9 @@ pub fn solve(input: String) -> String {
                     }
                     x += amount.parse::<i32>().unwrap();
                 }
-                _ => panic!("Unexpected input command"),
+                _ => bail!("unexpected input command"),
             },
         };
     }
-    sum.to_string()
+    Ok(sum.to_string())
 }
