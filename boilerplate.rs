@@ -1,3 +1,3 @@
-pub fn solve(input: String) -> String {
-    "".to_owned()
+pub fn solve(input: String) -> anyhow::Result<String> {
+    Ok("".to_string())
 }
