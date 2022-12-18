@@ -74,9 +74,9 @@ impl CaveSlice {
         let mut flag = true;
         while flag {
             flag = false;
-            for (mx, my) in [(0, 1), (-1, 1), (1, 1)] {
-                let new_position_x = u32::try_from(position_x as i64 + mx)?;
-                let new_position_y = u32::try_from(position_y as i64 + my)?;
+            for (dx, dy) in [(0, 1), (-1, 1), (1, 1)] {
+                let new_position_x = u32::try_from(position_x as i64 + dx)?;
+                let new_position_y = u32::try_from(position_y as i64 + dy)?;
                 if !self.tiles.contains_key(&(new_position_x, new_position_y)) {
                     position_x = new_position_x;
                     position_y = new_position_y;
