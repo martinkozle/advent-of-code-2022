@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 struct CaveSlice {
     tiles: HashMap<(u32, u32), char>,
+    lowest_wall_y: u32,
 }
 
 impl Display for CaveSlice {
@@ -29,40 +30,38 @@ impl Display for CaveSlice {
 
 impl CaveSlice {
     fn from_string(string: &str) -> anyhow::Result<Self> {
-        Ok(CaveSlice {
-            tiles: string
-                .lines()
-                .map(|line| {
-                    Ok(line
-                        .split(" -> ")
-                        .map(|coords| match coords.split_once(',') {
-                            Some((x, y)) => Ok((x.parse::<u32>()?, y.parse::<u32>()?)),
-                            None => Err(anyhow!("invalid input coords `{}`", coords)),
+        let tiles = string
+            .lines()
+            .map(|line| {
+                Ok(line
+                    .split(" -> ")
+                    .map(|coords| match coords.split_once(',') {
+                        Some((x, y)) => Ok((x.parse::<u32>()?, y.parse::<u32>()?)),
+                        None => Err(anyhow!("invalid input coords `{}`", coords)),
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?
+                    .into_iter()
+                    .tuple_windows()
+                    .flat_map(|((from_x, from_y), (to_x, to_y))| {
+                        (from_x.min(to_x)..=from_x.max(to_x)).flat_map(move |x| {
+                            (from_y.min(to_y)..=from_y.max(to_y)).map(move |y| ((x, y), '#'))
                         })
-                        .collect::<anyhow::Result<Vec<_>>>()?
-                        .into_iter()
-                        .tuple_windows()
-                        .flat_map(|((from_x, from_y), (to_x, to_y))| {
-                            (from_x.min(to_x)..=from_x.max(to_x)).flat_map(move |x| {
-                                (from_y.min(to_y)..=from_y.max(to_y)).map(move |y| ((x, y), '#'))
-                            })
-                        }))
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?
-                .into_iter()
-                .flatten()
-                .collect(),
-        })
-    }
-
-    fn lowest_wall_y(&self) -> u32 {
-        *self
-            .tiles
+                    }))
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<HashMap<_, _>>();
+        let lowest_wall_y = *tiles
             .iter()
             .filter(|(_, c)| **c == '#')
             .map(|((_, y), _)| y)
             .max()
-            .unwrap_or(&0)
+            .unwrap_or(&0);
+        Ok(CaveSlice {
+            tiles,
+            lowest_wall_y,
+        })
     }
 
     fn simulate_sand(&mut self, spawn_position: (u32, u32)) -> anyhow::Result<bool> {
@@ -72,7 +71,6 @@ impl CaveSlice {
         let mut position_x;
         let mut position_y;
         (position_x, position_y) = spawn_position;
-        let lowest_y = self.lowest_wall_y();
         let mut flag = true;
         while flag {
             flag = false;
@@ -86,7 +84,7 @@ impl CaveSlice {
                     break;
                 }
             }
-            if position_y > lowest_y {
+            if position_y > self.lowest_wall_y {
                 return Ok(false);
             }
         }
