@@ -28,7 +28,7 @@ impl Debug for Monkey {
 }
 
 impl Monkey {
-    fn from_text(text: &str, regex: &Regex) -> anyhow::Result<Self> {
+    fn from_string(string: &str, regex: &Regex) -> anyhow::Result<Self> {
         const EXPECTED_NAMES: [&str; 7] = [
             "id",
             "items",
@@ -46,8 +46,8 @@ impl Monkey {
             "regex didn't contain all expected names"
         );
         let captures = regex
-            .captures(text)
-            .ok_or_else(|| anyhow!("no captures were matched in text using regex"))?;
+            .captures(string)
+            .ok_or_else(|| anyhow!("no captures were matched in string using regex"))?;
 
         let op = captures.name("op").unwrap().as_str().to_string();
         ensure!(
@@ -137,14 +137,14 @@ struct Monkeys {
 }
 
 impl Monkeys {
-    fn from_texts<'a, I>(texts: I, regex: Regex) -> anyhow::Result<Self>
+    fn from_strings<'a, I>(strings: I, regex: Regex) -> anyhow::Result<Self>
     where
         I: IntoIterator<Item = &'a str>,
     {
         Ok(Monkeys {
-            monkeys: texts
+            monkeys: strings
                 .into_iter()
-                .map(|split| Monkey::from_text(split, &regex))
+                .map(|string| Monkey::from_string(string, &regex))
                 .collect::<anyhow::Result<_>>()?,
         })
     }
@@ -193,7 +193,7 @@ pub fn solve(input: String) -> anyhow::Result<String> {
     If false: throw to monkey (?P<if_false_throw_monkey>\d+)"#,
     )
     .unwrap();
-    let mut monkeys = Monkeys::from_texts(input.split("\n\n"), monkey_input_regex)?;
+    let mut monkeys = Monkeys::from_strings(input.split("\n\n"), monkey_input_regex)?;
     for _round in 1..21 {
         monkeys.play_round();
         // println!("Round: {}", _round);
